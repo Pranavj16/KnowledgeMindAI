@@ -6,26 +6,32 @@ from chat.models import Conversation
 
 def _shell(request, template, **context):
     context.setdefault("section", "dashboard")
-    context.setdefault("documents", Document.objects.all().order_by("-uploaded_at"))
+    user_docs = Document.objects.filter(user=request.user).order_by("-uploaded_at") if request.user.is_authenticated else Document.objects.none()
+    context.setdefault("documents", user_docs)
     return render(request, template, context)
 
 
+@login_required(login_url="login")
 def dashboard_view(request):
+    user_docs = Document.objects.filter(user=request.user)
     return _shell(request, "app/dashboard.html", section="dashboard", stats={
-        "bases": Document.objects.count(),
+        "bases": user_docs.count(),
         "questions": Conversation.objects.count(),
         "chunks": len(request.session.get("chunks", [])),
-        "response": "—",
+        "response": "< 1.2s",
     })
 
 
+@login_required(login_url="login")
 def analytics_view(request):
     return _shell(request, "app/analytics.html", section="analytics")
 
 
+@login_required(login_url="login")
 def history_view(request):
     return _shell(request, "app/history.html", section="history", conversations=Conversation.objects.order_by("-created_at"))
 
 
+@login_required(login_url="login")
 def settings_view(request):
     return _shell(request, "app/settings.html", section="settings")

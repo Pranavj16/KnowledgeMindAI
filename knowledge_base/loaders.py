@@ -2,6 +2,8 @@ def load_pdf(file_source):
     from pypdf import PdfReader
 
     try:
+        if hasattr(file_source, "seek"):
+            file_source.seek(0)
         reader = PdfReader(file_source)
         text = ""
         for page in reader.pages:
@@ -12,4 +14,5 @@ def load_pdf(file_source):
     except Exception as e:
         print(f"PDF read error: {e}")
         return ""
+
 

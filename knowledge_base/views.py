@@ -1,6 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
-from django.contrib.auth.models import User
+from django.contrib.auth.decorators import login_required
 
 from .forms import DocumentForm
 from .models import Document
@@ -12,21 +12,13 @@ from .chroma_service import (
 )
 
 
+@login_required(login_url="login")
 def upload_document(request):
     if request.method == "POST":
         form = DocumentForm(request.POST, request.FILES)
         if form.is_valid():
             document = form.save(commit=False)
-            
-            # Ensure valid user object is attached
-            if request.user.is_authenticated:
-                document.user = request.user
-            else:
-                user = User.objects.first()
-                if not user:
-                    user = User.objects.create_user(username="demo_user", email="demo@example.com")
-                document.user = user
-
+            document.user = request.user
             document.save()
 
             try:
@@ -51,7 +43,7 @@ def upload_document(request):
     else:
         form = DocumentForm()
 
-    documents = Document.objects.all().order_by("-uploaded_at")
+    documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
     chunks = request.session.get("chunks", [])
 
     return render(
@@ -65,31 +57,34 @@ def upload_document(request):
     )
 
 
-
+@login_required(login_url="login")
 def knowledge_base_list(request):
-    documents = Document.objects.all().order_by("-uploaded_at")
+    documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
     return render(request, "app/knowledge_bases.html", {"documents": documents, "section": "knowledge_bases"})
 
 
+@login_required(login_url="login")
 def knowledge_base_detail(request, document_id):
-    document = get_object_or_404(Document, pk=document_id)
+    document = get_object_or_404(Document, pk=document_id, user=request.user)
     chunks = request.session.get("chunks", [])
     return render(request, "app/kb_detail.html", {"document": document, "chunks": chunks, "section": "knowledge_bases"})
 
 
+@login_required(login_url="login")
 def chunk_explorer(request, document_id):
-    document = get_object_or_404(Document, pk=document_id)
+    document = get_object_or_404(Document, pk=document_id, user=request.user)
     chunks = request.session.get("chunks", [])
     return render(request, "app/chunks.html", {"document": document, "chunks": chunks, "section": "knowledge_bases"})
 
 
+@login_required(login_url="login")
 def reprocess_document(request, document_id):
-    document = get_object_or_404(Document, pk=document_id)
+    document = get_object_or_404(Document, pk=document_id, user=request.user)
     if request.method != "POST":
         return redirect("kb_chunks", document_id=document.id)
 
     try:
-        text = load_pdf(document.file.path)
+        text = load_pdf(document.file)
         chunks = chunk_text(text)
         if not chunks:
             raise ValueError("No text chunks were produced from this document.")
@@ -106,12 +101,16 @@ def reprocess_document(request, document_id):
     return redirect("kb_chunks", document_id=document.id)
 
 
+@login_required(login_url="login")
 def delete_document(request, document_id):
-    document = get_object_or_404(Document, pk=document_id)
+    document = get_object_or_404(Document, pk=document_id, user=request.user)
     if request.method == "POST":
         title = document.title
         if document.file:
-            document.file.delete(save=False)
+            try:
+                document.file.delete(save=False)
+            except Exception:
+                pass
         document.delete()
         request.session.pop("chunks", None)
         messages.success(request, f"Removed {title} from your knowledge bases.")

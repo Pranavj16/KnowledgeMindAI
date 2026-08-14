@@ -22,12 +22,10 @@ def generate_embedding(text):
     if client:
         try:
             res = client.models.embed_content(
-                model="text-embedding-004",
+                model="gemini-embedding-001",
                 contents=text
             )
-            if hasattr(res, 'embedding') and hasattr(res.embedding, 'values'):
-                return list(res.embedding.values)
-            elif hasattr(res, 'embeddings') and len(res.embeddings) > 0:
+            if hasattr(res, "embeddings") and res.embeddings:
                 return list(res.embeddings[0].values)
         except Exception as e:
             print(f"Gemini API embedding error: {e}")
