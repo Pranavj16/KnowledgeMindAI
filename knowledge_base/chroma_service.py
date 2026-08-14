@@ -15,7 +15,10 @@ def get_collection():
             import chromadb
             db_path = "/tmp/chroma_db" if os.getenv("VERCEL") else "./chroma_db"
             _client = chromadb.PersistentClient(path=db_path)
-            _collection = _client.get_or_create_collection(name="knowledge_base")
+            _collection = _client.get_or_create_collection(
+                name="knowledge_base_v2",
+                metadata={"hnsw:space": "cosine"}
+            )
         except Exception as e:
             print(f"ChromaDB persistent client unavailable: {e}")
             _collection = None
@@ -45,6 +48,19 @@ def store_chunks(chunks):
                 stored_in_chroma = True
             except Exception as e:
                 print(f"ChromaDB store error: {e}")
+                try:
+                    if _client is not None:
+                        _client.delete_collection(name="knowledge_base_v2")
+                        global _collection
+                        _collection = _client.get_or_create_collection(name="knowledge_base_v2")
+                        _collection.add(
+                            documents=[chunk],
+                            embeddings=[embedding],
+                            ids=[chunk_id]
+                        )
+                        stored_in_chroma = True
+                except Exception as exc:
+                    print(f"ChromaDB recreate error: {exc}")
 
         if not stored_in_chroma:
             _in_memory_store.append({
@@ -52,6 +68,7 @@ def store_chunks(chunks):
                 "document": chunk,
                 "embedding": embedding
             })
+
 
 
 def get_total_chunks():
