@@ -2,6 +2,7 @@ services:
   - type: web
     name: knowledgemind-ai
     runtime: python
+    plan: free
     buildCommand: "./build.sh"
     startCommand: "gunicorn rag_agent.wsgi:application"
     envVars:
