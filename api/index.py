@@ -7,16 +7,31 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 sys.path.append(str(BASE_DIR))
 
-# On Vercel serverless environment, copy SQLite database to writable /tmp directory if needed
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "rag_agent.settings")
+
+# Auto-migrate SQLite on Vercel serverless Lambda startup
 if os.getenv("VERCEL"):
+    import django
+    django.setup()
     tmp_db = Path("/tmp/db.sqlite3")
     local_db = BASE_DIR / "db.sqlite3"
-    if not tmp_db.exists() and local_db.exists():
+    
+    # Copy template db if exists, or run migrations
+    if not tmp_db.exists():
+        if local_db.exists():
+            try:
+                shutil.copy(local_db, tmp_db)
+            except Exception as e:
+                print(f"Error copying template db: {e}")
+        
         try:
-            shutil.copy(local_db, tmp_db)
+            from django.core.management import call_command
+            call_command("migrate", interactive=False)
+            print("Successfully ran SQLite migrations on Vercel!")
         except Exception as e:
-            print(f"Error initializing /tmp/db.sqlite3: {e}")
+            print(f"Auto-migration error on Vercel: {e}")
 
 from rag_agent.wsgi import application
 
 app = application
+
