@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
 from .forms import DocumentForm
-from .models import Document
+from .models import Document, DocumentChunk
 from .loaders import load_pdf
 from .chunking import chunk_text
 from .chroma_service import (
@@ -29,10 +29,10 @@ def upload_document(request):
                 
                 if chunks:
                     store_chunks(chunks, document_id=document.id, user_id=request.user.id)
-                    request.session["chunks"] = chunks
                     document.processed = True
                     document.save(update_fields=["processed"])
                     messages.success(request, f"Successfully created {len(chunks)} chunks from {document.title}.")
+                    return redirect("kb_detail", document_id=document.id)
                 else:
                     messages.warning(request, f"No text content could be extracted from {document.title}.")
             except Exception as exc:
@@ -44,7 +44,10 @@ def upload_document(request):
         form = DocumentForm()
 
     documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
-    chunks = request.session.get("chunks", [])
+    recent_chunks = []
+    latest_doc = documents.first()
+    if latest_doc:
+        recent_chunks = [c.content for c in latest_doc.chunks.all()[:10]]
 
     return render(
         request,
@@ -52,7 +55,7 @@ def upload_document(request):
         {
             "form": form,
             "documents": documents,
-            "chunks": chunks,
+            "chunks": recent_chunks,
         },
     )
 
@@ -66,7 +69,7 @@ def knowledge_base_list(request):
 @login_required(login_url="login")
 def knowledge_base_detail(request, document_id):
     document = get_object_or_404(Document, pk=document_id, user=request.user)
-    chunks = request.session.get("chunks", [])
+    chunks = [c.content for c in document.chunks.all()]
     conversations = document.conversations.filter(user=request.user).order_by("-created_at")
     return render(request, "app/kb_detail.html", {
         "document": document,
@@ -79,7 +82,7 @@ def knowledge_base_detail(request, document_id):
 @login_required(login_url="login")
 def chunk_explorer(request, document_id):
     document = get_object_or_404(Document, pk=document_id, user=request.user)
-    chunks = request.session.get("chunks", [])
+    chunks = [c.content for c in document.chunks.all()]
     return render(request, "app/chunks.html", {"document": document, "chunks": chunks, "section": "knowledge_bases"})
 
 
@@ -95,7 +98,6 @@ def reprocess_document(request, document_id):
         if not chunks:
             raise ValueError("No text chunks were produced from this document.")
         store_chunks(chunks, document_id=document.id, user_id=request.user.id)
-        request.session["chunks"] = chunks
         document.processed = True
         document.save(update_fields=["processed"])
         messages.success(request, f"Created {len(chunks)} chunks from {document.title}.")
@@ -118,6 +120,5 @@ def delete_document(request, document_id):
             except Exception:
                 pass
         document.delete()
-        request.session.pop("chunks", None)
         messages.success(request, f"Removed {title} from your knowledge bases.")
     return redirect("knowledge_bases")

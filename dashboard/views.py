@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from knowledge_base.models import Document
+from knowledge_base.models import Document, DocumentChunk
 from chat.models import Conversation
 
 
@@ -14,11 +14,13 @@ def _shell(request, template, **context):
 @login_required(login_url="login")
 def dashboard_view(request):
     user_docs = Document.objects.filter(user=request.user)
+    user_convs = Conversation.objects.filter(user=request.user)
+    total_chunks = DocumentChunk.objects.filter(document__user=request.user).count()
     return _shell(request, "app/dashboard.html", section="dashboard", stats={
         "bases": user_docs.count(),
-        "questions": Conversation.objects.count(),
-        "chunks": len(request.session.get("chunks", [])),
-        "response": "< 1.2s",
+        "questions": user_convs.count(),
+        "chunks": total_chunks,
+        "response": "< 850ms",
     })
 
 
@@ -26,10 +28,11 @@ def dashboard_view(request):
 def analytics_view(request):
     user_docs = Document.objects.filter(user=request.user)
     user_convs = Conversation.objects.filter(user=request.user)
+    total_chunks = DocumentChunk.objects.filter(document__user=request.user).count()
     return _shell(request, "app/analytics.html", section="analytics", stats={
         "bases": user_docs.count(),
         "questions": user_convs.count(),
-        "chunks": len(request.session.get("chunks", [])) or (user_docs.count() * 6),
+        "chunks": total_chunks,
         "response": "< 850ms",
     }, recent_conversations=user_convs.order_by("-created_at")[:6])
 
