@@ -14,10 +14,10 @@ def chat_view(request, document_id=None):
     
     all_documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
     
-    # Resolve requested knowledge base (from URL or GET param)
+    # Resolve requested knowledge base
     selected_doc_id = document_id or request.GET.get("kb")
     document = None
-    if selected_doc_id and str(selected_doc_id).strip() and str(selected_doc_id).lower() != "all":
+    if selected_doc_id and str(selected_doc_id).strip():
         try:
             document = get_object_or_404(Document, pk=selected_doc_id, user=request.user)
         except Exception:
@@ -27,17 +27,16 @@ def chat_view(request, document_id=None):
         question = request.POST.get("question", "").strip()
         post_doc_id = request.POST.get("document_id")
         
-        if post_doc_id and str(post_doc_id).strip() and str(post_doc_id).lower() != "all":
+        if post_doc_id and str(post_doc_id).strip():
             try:
                 document = Document.objects.filter(pk=post_doc_id, user=request.user).first()
             except Exception:
                 pass
-        elif post_doc_id == "all":
-            document = None
 
-        if question:
-            doc_id_to_search = document.id if document else None
-            results = search_chunks(question, document_id=doc_id_to_search, user_id=request.user.id)
+        if not document:
+            answer = "Please select a Knowledge Base from the selector above to start chatting."
+        elif question:
+            results = search_chunks(question, document_id=document.id, user_id=request.user.id)
             documents = results.get("documents", [[]])[0] if results else []
             sources = [
                 {"chunk_number": index, "text": chunk}
@@ -48,10 +47,7 @@ def chat_view(request, document_id=None):
                 context_str = "\n\n".join(item["text"] for item in sources)
                 answer = ask_llm(question, context_str)
             else:
-                if document:
-                    answer = f"I could not find relevant information in '{document.title}' to answer your question. Try rephrasing or asking across all knowledge bases."
-                else:
-                    answer = "No relevant information found across your indexed knowledge bases."
+                answer = f"I could not find relevant information in '{document.title}' to answer your question. Try rephrasing your inquiry."
 
             Conversation.objects.create(
                 user=request.user,
@@ -60,11 +56,11 @@ def chat_view(request, document_id=None):
                 answer=answer or ""
             )
 
-    # Scoped history
+    # Scoped history strictly for this document
     if document:
-        conversations = Conversation.objects.filter(user=request.user, document=document).order_by("-created_at")[:12]
+        conversations = Conversation.objects.filter(user=request.user, document=document).order_by("-created_at")[:20]
     else:
-        conversations = Conversation.objects.filter(user=request.user).order_by("-created_at")[:12]
+        conversations = []
 
     return render(
         request,
