@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: knowledgemind-ai
+    runtime: python
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn rag_agent.wsgi:application"
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*"

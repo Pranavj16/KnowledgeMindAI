@@ -1,0 +1,38 @@
+# Environment & Secret files (LOCKED - Never commit to repository)
+.env
+.env.txt
+.env.local
+.env.*.local
+*.env
+
+# SQLite Database
+db.sqlite3
+db.sqlite3-journal
+
+# Vector Database Persistence
+chroma_db/
+/chroma_db/
+
+# Media Uploads & User Files
+media/
+/media/
+
+# Static Files Collection (Generated in production)
+staticfiles/
+/staticfiles/
+
+# Python Cache & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# IDE & OS Configuration Files
+.vscode/
+.idea/
+.ds_store
+.DS_Store
+Thumbs.db
