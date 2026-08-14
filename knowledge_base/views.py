@@ -28,7 +28,7 @@ def upload_document(request):
                 chunks = chunk_text(text)
                 
                 if chunks:
-                    store_chunks(chunks)
+                    store_chunks(chunks, document_id=document.id, user_id=request.user.id)
                     request.session["chunks"] = chunks
                     document.processed = True
                     document.save(update_fields=["processed"])
@@ -67,7 +67,13 @@ def knowledge_base_list(request):
 def knowledge_base_detail(request, document_id):
     document = get_object_or_404(Document, pk=document_id, user=request.user)
     chunks = request.session.get("chunks", [])
-    return render(request, "app/kb_detail.html", {"document": document, "chunks": chunks, "section": "knowledge_bases"})
+    conversations = document.conversations.filter(user=request.user).order_by("-created_at")
+    return render(request, "app/kb_detail.html", {
+        "document": document,
+        "chunks": chunks,
+        "conversations": conversations,
+        "section": "knowledge_bases"
+    })
 
 
 @login_required(login_url="login")
@@ -88,7 +94,7 @@ def reprocess_document(request, document_id):
         chunks = chunk_text(text)
         if not chunks:
             raise ValueError("No text chunks were produced from this document.")
-        store_chunks(chunks)
+        store_chunks(chunks, document_id=document.id, user_id=request.user.id)
         request.session["chunks"] = chunks
         document.processed = True
         document.save(update_fields=["processed"])

@@ -1,26 +1,258 @@
 {% extends 'app/base.html' %}
 {% block title %}Chat · KnowledgeMind AI{% endblock %}
 {% block breadcrumb %}{% if document %}{{ document.title }} / Chat{% else %}Workspace / Chat{% endif %}{% endblock %}
+
 {% block content %}
-<div class="flex flex-wrap items-end justify-between gap-5">
-  <div><p class="font-mono text-xs uppercase tracking-[.2em] text-cyan-300">retrieval / conversation</p><h1 class="mt-3 text-3xl font-semibold text-white">{% if document %}Chat with {{ document.title }}{% else %}Ask your knowledge base{% endif %}</h1><p class="mt-2 text-sm text-slate-500">Ask questions and inspect the evidence used to ground each answer.</p></div>
-  <span class="rounded-full bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300">● retrieval enabled</span>
-</div>
-<div class="mt-8 grid min-h-[600px] gap-5 xl:grid-cols-[.65fr_1.6fr_.75fr]">
-  <aside class="glass hidden rounded-2xl p-5 xl:block"><div class="flex items-center justify-between"><h2 class="text-sm font-semibold text-white">Question history</h2><a href="{% url 'history_root' %}" class="text-[10px] text-indigo-300">View all</a></div><div class="mt-5 space-y-2">{% for item in conversations %}<div class="rounded-xl p-3 text-xs {% if forloop.first %}bg-indigo-500/10 text-indigo-200{% else %}text-slate-500{% endif %}"><p class="line-clamp-2">{{ item.question }}</p><p class="mt-2 text-[10px] text-slate-600">{{ item.created_at|date:'M j, g:i A' }}</p></div>{% empty %}<p class="rounded-xl border border-dashed border-white/10 p-5 text-xs text-slate-600">No questions yet.</p>{% endfor %}</div></aside>
-  <section class="glass flex flex-col rounded-2xl p-5 sm:p-7">
-    <div id="messages" class="flex-1 space-y-7">
-      {% if question %}<div class="flex justify-end"><div class="max-w-xl rounded-2xl rounded-tr-sm bg-indigo-500 px-4 py-3 text-sm leading-6 text-white">{{ question }}</div></div>{% endif %}
-      {% if answer %}<div class="flex gap-3"><div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-cyan-400/10 text-xs text-cyan-300">AI</div><div class="max-w-2xl"><div class="rounded-2xl rounded-tl-sm border border-white/10 bg-white/[.04] px-5 py-4 text-sm leading-7 text-slate-300"><div id="answer-markdown" data-markdown>{{ answer }}</div></div><div class="mt-3 flex gap-3"><button onclick="copyAnswer(this)" class="text-xs text-slate-500 hover:text-white">Copy</button><button onclick="document.querySelector('#question').value={{ question|escapejs|safe }};document.querySelector('#question').focus()" class="text-xs text-slate-500 hover:text-white">Regenerate</button></div></div></div>{% else %}<div class="flex h-full min-h-[280px] items-center justify-center"><div class="text-center"><div class="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500/10 text-xl text-indigo-300">✦</div><p class="mt-4 text-sm text-slate-300">Your grounded answer will appear here.</p><p class="mt-2 text-xs text-slate-600">Try one of the prompts below to start.</p></div></div>{% endif %}
+<!-- Top Header with Knowledge Base Selector -->
+<div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <div class="flex items-center gap-2">
+      <span class="inline-flex items-center gap-1.5 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[11px] text-indigo-300">
+        <span class="h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse"></span>
+        {% if document %}Scoped Knowledge Base{% else %}Global Retrieval{% endif %}
+      </span>
     </div>
-    <div class="mt-8"><div class="mb-3 flex flex-wrap gap-2"><button onclick="fillPrompt(this)" class="rounded-full border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-indigo-400/40 hover:text-white">Explain Deep Learning</button><button onclick="fillPrompt(this)" class="rounded-full border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-indigo-400/40 hover:text-white">What is semantic search?</button><button onclick="fillPrompt(this)" class="rounded-full border border-white/10 px-3 py-2 text-xs text-slate-400 hover:border-indigo-400/40 hover:text-white">Summarize this document</button></div><form id="chat-form" method="POST" class="flex gap-2 rounded-2xl border border-white/10 bg-[#0b0f19] p-2">{% csrf_token %}<textarea id="question" name="question" rows="1" required placeholder="Ask a question…" class="min-h-11 flex-1 resize-none bg-transparent px-3 py-3 text-sm text-white outline-none placeholder:text-slate-600"></textarea><button id="send-button" class="grid h-11 w-11 place-items-center rounded-xl bg-indigo-500 text-white transition hover:bg-indigo-400">↑</button></form><p class="mt-2 text-center text-[10px] text-slate-700">Responses are generated from retrieved context in ChromaDB.</p></div>
-  </section>
-  <aside class="glass rounded-2xl p-5"><div class="flex items-center justify-between"><div><h2 class="text-sm font-semibold text-white">Retrieved context</h2><p class="mt-1 text-xs text-slate-600">Source citations</p></div><span class="font-mono text-[10px] text-slate-600">top 3</span></div><div class="mt-6 space-y-3">{% for source in sources %}<details class="rounded-xl border border-indigo-400/20 bg-indigo-400/[.06] p-4" open><summary class="cursor-pointer list-none text-xs text-indigo-200">{% if document %}{{ document.title }}{% else %}Knowledge base{% endif %} · Chunk #{{ source.chunk_number }}</summary><p class="mt-3 line-clamp-6 text-xs leading-6 text-slate-500">{{ source.text }}</p><button onclick="navigator.clipboard.writeText(this.previousElementSibling.textContent);this.textContent='Copied'" class="mt-3 text-[10px] text-indigo-300">Copy source</button></details>{% empty %}<div class="rounded-xl border border-dashed border-white/10 p-5 text-xs leading-5 text-slate-600">Retrieved chunks will appear here after you ask a question.</div>{% endfor %}</div><div class="mt-4 rounded-xl border border-white/10 p-4"><p class="text-xs text-slate-500">Embedding model</p><p class="mt-2 font-mono text-xs text-slate-300">all-MiniLM-L6-v2</p></div></aside>
+    <h1 class="mt-2 text-2xl font-bold text-white sm:text-3xl">
+      {% if document %}Chat with <span class="text-indigo-300">{{ document.title }}</span>{% else %}Ask Knowledge Base{% endif %}
+    </h1>
+    <p class="mt-1 text-xs text-slate-400">
+      {% if document %}Grounding responses strictly on retrieved chunks from {{ document.title }}.{% else %}Searching across all indexed documents in your workspace.{% endif %}
+    </p>
+  </div>
+
+  <!-- Knowledge Base Switcher Dropdown -->
+  <div class="flex items-center gap-3">
+    <div class="relative min-w-[240px]">
+      <label for="kb-select" class="block text-[10px] font-mono uppercase tracking-wider text-slate-400 mb-1">Active Source</label>
+      <select id="kb-select" onchange="switchKnowledgeBase(this.value)" class="w-full appearance-none rounded-xl border border-white/10 bg-[#0d121f] px-3.5 py-2.5 text-xs text-slate-200 outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400">
+        <option value="" {% if not document %}selected{% endif %}>🌐 All Knowledge Bases (Global)</option>
+        {% for doc in all_documents %}
+          <option value="{{ doc.id }}" {% if document and document.id == doc.id %}selected{% endif %}>📄 {{ doc.title|truncatechars:35 }}</option>
+        {% endfor %}
+      </select>
+      <span class="pointer-events-none absolute right-3 top-[28px] text-xs text-slate-400">▾</span>
+    </div>
+
+    {% if document %}
+      <a href="{% url 'chat' %}" title="Switch to Global Search" class="mt-4 rounded-xl border border-white/10 bg-white/[.02] px-3 py-2 text-xs text-slate-300 transition hover:bg-white/5 hover:text-white">
+        Reset
+      </a>
+    {% endif %}
+  </div>
 </div>
+
+<!-- Main 3-Column Chat Grid -->
+<div class="mt-6 grid min-h-[620px] gap-5 xl:grid-cols-[280px_1fr_320px]">
+  
+  <!-- Left Column: Scoped History -->
+  <aside class="glass flex flex-col rounded-2xl p-4 xl:block">
+    <div class="flex items-center justify-between pb-3 border-b border-white/5">
+      <div>
+        <h2 class="text-xs font-semibold text-white">
+          {% if document %}Source History{% else %}Recent Inquiries{% endif %}
+        </h2>
+        <p class="text-[10px] text-slate-500">{% if document %}{{ document.title|truncatechars:20 }}{% else %}All conversations{% endif %}</p>
+      </div>
+      <a href="{% if document %}{% url 'kb_chat' document.id %}{% else %}{% url 'chat' %}{% endif %}" class="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-indigo-300 transition hover:bg-indigo-500/10">
+        ＋ New
+      </a>
+    </div>
+
+    <div class="mt-3 flex-1 space-y-2 overflow-y-auto max-h-[520px] pr-1">
+      {% for item in conversations %}
+      <div class="group rounded-xl border border-white/5 p-3 transition hover:border-indigo-500/30 hover:bg-white/[.02] {% if forloop.first and not question %}border-indigo-500/20 bg-indigo-500/[.03]{% endif %}">
+        <div class="flex items-center justify-between gap-1">
+          <span class="truncate text-[10px] font-mono text-slate-500">
+            {% if item.document %}📄 {{ item.document.title|truncatechars:18 }}{% else %}🌐 Global{% endif %}
+          </span>
+          <time class="shrink-0 text-[9px] text-slate-600">{{ item.created_at|date:'M j, g:i A' }}</time>
+        </div>
+        <p class="mt-1.5 text-xs text-slate-300 line-clamp-2 leading-5">{{ item.question }}</p>
+        <button onclick="loadQuestion({{ item.question|escapejs|safe }})" class="mt-2 text-[10px] text-indigo-400 opacity-0 group-hover:opacity-100 transition">
+          Re-ask →
+        </button>
+      </div>
+      {% empty %}
+      <div class="rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-slate-500">
+        <p>No questions yet for this source.</p>
+        <p class="mt-1 text-[10px] text-slate-600">Start by typing your inquiry below.</p>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+
+  <!-- Middle Column: Chat Area -->
+  <section class="glass flex flex-col rounded-2xl p-5 sm:p-6">
+    <div id="messages-container" class="flex-1 space-y-6 overflow-y-auto max-h-[480px] pr-1">
+      {% if question %}
+        <!-- User Query Bubble -->
+        <div class="flex justify-end">
+          <div class="max-w-xl rounded-2xl rounded-tr-sm bg-indigo-600 px-4 py-3 text-sm leading-6 text-white shadow-md">
+            {{ question }}
+          </div>
+        </div>
+      {% endif %}
+
+      {% if answer %}
+        <!-- Grounded AI Response Bubble -->
+        <div class="flex items-start gap-3">
+          <div class="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-indigo-500/20 text-xs font-semibold text-indigo-300 ring-1 ring-indigo-500/30">
+            AI
+          </div>
+          <div class="max-w-2xl flex-1">
+            <div class="rounded-2xl rounded-tl-sm border border-white/10 bg-white/[.03] px-5 py-4 text-sm leading-7 text-slate-200">
+              <div id="answer-markdown" class="whitespace-pre-wrap">{{ answer }}</div>
+            </div>
+            <div class="mt-2.5 flex items-center gap-3">
+              <button onclick="copyAnswer(this)" class="rounded-md border border-white/10 px-2.5 py-1 text-[11px] text-slate-400 transition hover:bg-white/5 hover:text-white">
+                Copy Answer
+              </button>
+              <button onclick="document.querySelector('#question').value={{ question|escapejs|safe }};document.querySelector('#question').focus()" class="rounded-md border border-white/10 px-2.5 py-1 text-[11px] text-slate-400 transition hover:bg-white/5 hover:text-white">
+                Regenerate
+              </button>
+              <span class="ml-auto text-[10px] text-slate-500">
+                {% if document %}Source: {{ document.title|truncatechars:25 }}{% else %}Source: Workspace Index{% endif %}
+              </span>
+            </div>
+          </div>
+        </div>
+      {% else %}
+        <!-- Empty Placeholder State -->
+        <div class="flex h-full min-h-[300px] flex-col items-center justify-center text-center">
+          <div class="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500/10 text-lg text-indigo-300 ring-1 ring-indigo-500/20">
+            ✦
+          </div>
+          <h3 class="mt-4 text-sm font-semibold text-white">
+            {% if document %}Ask anything about {{ document.title }}{% else %}Ask anything across your Knowledge Bases{% endif %}
+          </h3>
+          <p class="mt-1 max-w-sm text-xs text-slate-500">
+            Responses are grounded using vector semantic search over your uploaded document chunks.
+          </p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Suggested Starter Prompts -->
+    <div class="mt-6 border-t border-white/5 pt-4">
+      <div class="mb-3 flex flex-wrap gap-2">
+        <button onclick="fillPrompt(this)" class="rounded-full border border-white/10 bg-white/[.02] px-3 py-1.5 text-xs text-slate-400 transition hover:border-indigo-400/40 hover:bg-white/5 hover:text-white">
+          Summarize this document
+        </button>
+        <button onclick="fillPrompt(this)" class="rounded-full border border-white/10 bg-white/[.02] px-3 py-1.5 text-xs text-slate-400 transition hover:border-indigo-400/40 hover:bg-white/5 hover:text-white">
+          What are the main key points?
+        </button>
+        <button onclick="fillPrompt(this)" class="rounded-full border border-white/10 bg-white/[.02] px-3 py-1.5 text-xs text-slate-400 transition hover:border-indigo-400/40 hover:bg-white/5 hover:text-white">
+          Extract action items
+        </button>
+      </div>
+
+      <!-- Chat Input Form -->
+      <form id="chat-form" method="POST" class="flex items-center gap-2 rounded-2xl border border-white/10 bg-[#0a0e1a] p-2 transition focus-within:border-indigo-500/50">
+        {% csrf_token %}
+        <input type="hidden" name="document_id" value="{% if document %}{{ document.id }}{% else %}all{% endif %}">
+        <textarea id="question" name="question" rows="1" required placeholder="{% if document %}Ask a question about {{ document.title }}…{% else %}Ask a question across all knowledge bases…{% endif %}" class="min-h-[44px] flex-1 resize-none bg-transparent px-3 py-2.5 text-sm text-white placeholder-slate-500 outline-none"></textarea>
+        <button id="send-button" type="submit" class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white shadow-md transition hover:bg-indigo-500">
+          ↑
+        </button>
+      </form>
+      <div class="mt-2 flex items-center justify-between text-[10px] text-slate-500">
+        <span>Grounded generation · Gemini 2.5 Flash + ChromaDB</span>
+        <span>Press <kbd class="rounded border border-white/10 px-1 py-0.5 text-slate-400">Enter ↵</kbd> to send</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Right Column: Retrieved Evidence & Citations -->
+  <aside class="glass rounded-2xl p-4">
+    <div class="flex items-center justify-between pb-3 border-b border-white/5">
+      <div>
+        <h2 class="text-xs font-semibold text-white">Retrieved Context</h2>
+        <p class="text-[10px] text-slate-500">Semantic Evidence</p>
+      </div>
+      <span class="rounded-full bg-emerald-400/10 px-2 py-0.5 font-mono text-[9px] text-emerald-300">
+        {{ sources|length }} chunks
+      </span>
+    </div>
+
+    <div class="mt-3 space-y-3 overflow-y-auto max-h-[500px] pr-1">
+      {% for source in sources %}
+      <div class="rounded-xl border border-indigo-400/20 bg-indigo-500/[.04] p-3.5">
+        <div class="flex items-center justify-between text-[11px] text-indigo-300">
+          <span class="font-medium">
+            {% if document %}{{ document.title|truncatechars:20 }}{% else %}Knowledge Base{% endif %} · Chunk #{{ source.chunk_number }}
+          </span>
+          <button onclick="navigator.clipboard.writeText(this.closest('.rounded-xl').querySelector('p').textContent);this.textContent='Copied'" class="text-[10px] text-slate-400 hover:text-white">
+            Copy
+          </button>
+        </div>
+        <p class="mt-2 line-clamp-6 text-xs leading-relaxed text-slate-400">
+          {{ source.text }}
+        </p>
+      </div>
+      {% empty %}
+      <div class="rounded-xl border border-dashed border-white/10 p-6 text-center text-xs leading-relaxed text-slate-500">
+        <p>No chunks retrieved yet.</p>
+        <p class="mt-1 text-[10px] text-slate-600">
+          Ask a question to see the exact excerpts used by the LLM.
+        </p>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="mt-4 rounded-xl border border-white/5 bg-white/[.02] p-3">
+      <p class="text-[10px] font-mono uppercase tracking-wider text-slate-400">Active Pipeline</p>
+      <div class="mt-2 flex items-center justify-between text-xs text-slate-300">
+        <span>Vector Search</span>
+        <span class="font-mono text-indigo-300">ChromaDB</span>
+      </div>
+      <div class="mt-1 flex items-center justify-between text-xs text-slate-300">
+        <span>LLM Model</span>
+        <span class="font-mono text-emerald-300">Gemini 2.5 Flash</span>
+      </div>
+    </div>
+  </aside>
+</div>
+
 <script>
-function fillPrompt(button){const input=document.querySelector('#question');input.value=button.textContent.trim();input.focus()}
-function copyAnswer(button){const answer=document.querySelector('#answer-markdown').textContent;navigator.clipboard.writeText(answer);button.textContent='Copied'}
-document.querySelector('#chat-form')?.addEventListener('submit',()=>{const button=document.querySelector('#send-button');button.disabled=true;button.innerHTML='<span class="h-2 w-2 animate-ping rounded-full bg-white"></span>';button.form.classList.add('opacity-70')})
-document.querySelector('#question')?.addEventListener('keydown',event=>{if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();document.querySelector('#chat-form').requestSubmit()}})
+function switchKnowledgeBase(kbId) {
+  if (kbId) {
+    window.location.href = "{% url 'chat' %}" + kbId + "/";
+  } else {
+    window.location.href = "{% url 'chat' %}";
+  }
+}
+
+function fillPrompt(button) {
+  const input = document.querySelector('#question');
+  input.value = button.textContent.trim();
+  input.focus();
+}
+
+function loadQuestion(text) {
+  const input = document.querySelector('#question');
+  input.value = text;
+  input.focus();
+}
+
+function copyAnswer(button) {
+  const answer = document.querySelector('#answer-markdown').textContent;
+  navigator.clipboard.writeText(answer);
+  const original = button.textContent;
+  button.textContent = 'Copied!';
+  setTimeout(() => { button.textContent = original; }, 2000);
+}
+
+document.querySelector('#chat-form')?.addEventListener('submit', () => {
+  const button = document.querySelector('#send-button');
+  button.disabled = true;
+  button.innerHTML = '<span class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span>';
+});
+
+document.querySelector('#question')?.addEventListener('keydown', event => {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault();
+    document.querySelector('#chat-form').requestSubmit();
+  }
+});
 </script>
 {% endblock %}

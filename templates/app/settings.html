@@ -1,1 +1,65 @@
-{% extends 'app/base.html' %}{% block title %}Settings · KnowledgeMind AI{% endblock %}{% block breadcrumb %}Account / Settings{% endblock %}{% block content %}<div><p class="font-mono text-xs uppercase tracking-[.2em] text-indigo-300">account / preferences</p><h1 class="mt-3 text-3xl font-semibold text-white">Settings</h1><p class="mt-2 text-sm text-slate-500">Tune the retrieval experience for this workspace.</p></div><div class="mt-8 max-w-4xl"><div class="flex gap-6 overflow-x-auto border-b border-white/10 text-sm"><span class="border-b-2 border-indigo-400 pb-4 text-white">General</span><span class="pb-4 text-slate-500">AI Settings</span><span class="pb-4 text-slate-500">Retrieval Settings</span><span class="pb-4 text-slate-500">Appearance</span></div><section class="glass mt-6 rounded-2xl p-7"><h2 class="text-sm font-semibold text-white">AI settings</h2><p class="mt-1 text-xs text-slate-600">These controls are presented for the application IA; persistence is not wired yet.</p><div class="mt-7 grid gap-5 sm:grid-cols-2"><label class="text-xs text-slate-400">Gemini model<input value="Gemini 2.5 Flash" readonly class="mt-2 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-slate-300"></label><label class="text-xs text-slate-400">Temperature<input value="0.2" readonly class="mt-2 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-slate-300"></label><label class="text-xs text-slate-400">Top K retrieval<input value="3" readonly class="mt-2 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-slate-300"></label><label class="text-xs text-slate-400">Chunk size<input value="Configured by chunker" readonly class="mt-2 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-slate-300"></label><label class="text-xs text-slate-400">Chunk overlap<input value="Configured by chunker" readonly class="mt-2 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-slate-300"></label></div></section></div>{% endblock %}
+{% extends 'app/base.html' %}
+{% block title %}Settings · KnowledgeMind AI{% endblock %}
+{% block breadcrumb %}Account / Settings{% endblock %}
+
+{% block content %}
+<div>
+  <p class="font-mono text-xs uppercase tracking-[.2em] text-indigo-300">workspace / configuration</p>
+  <h1 class="mt-2 text-2xl font-bold text-white sm:text-3xl">Workspace Settings</h1>
+  <p class="mt-1 text-xs text-slate-400">Manage pipeline parameters, vector retrieval configuration, and system models.</p>
+</div>
+
+<div class="mt-8 max-w-4xl space-y-6">
+  <!-- AI Model Engine -->
+  <section class="glass rounded-2xl p-6 sm:p-7">
+    <div class="flex items-center justify-between border-b border-white/5 pb-4">
+      <div>
+        <h2 class="text-sm font-semibold text-white">LLM & Generation Engine</h2>
+        <p class="text-xs text-slate-500">Active language model for grounding responses</p>
+      </div>
+      <span class="rounded-full bg-emerald-400/10 px-2.5 py-0.5 font-mono text-[10px] text-emerald-300">● Connected</span>
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 text-xs">
+      <div>
+        <label class="block text-slate-400 font-medium">Model Architecture</label>
+        <input value="Google Gemini 2.5 Flash" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+      <div>
+        <label class="block text-slate-400 font-medium">Sampling Temperature</label>
+        <input value="0.2 (Deterministic & Fact-Grounded)" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+    </div>
+  </section>
+
+  <!-- Vector & Database Settings -->
+  <section class="glass rounded-2xl p-6 sm:p-7">
+    <div class="flex items-center justify-between border-b border-white/5 pb-4">
+      <div>
+        <h2 class="text-sm font-semibold text-white">Vector Store & Retrieval Parameters</h2>
+        <p class="text-xs text-slate-500">Vector database and semantic similarity configuration</p>
+      </div>
+      <span class="rounded-full bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[10px] text-indigo-300">● Active</span>
+    </div>
+
+    <div class="mt-6 grid gap-4 sm:grid-cols-2 text-xs">
+      <div>
+        <label class="block text-slate-400 font-medium">Vector Store</label>
+        <input value="ChromaDB Persistent Store" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+      <div>
+        <label class="block text-slate-400 font-medium">Relational Database</label>
+        <input value="Neon Serverless PostgreSQL" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+      <div>
+        <label class="block text-slate-400 font-medium">Embedding Dimension</label>
+        <input value="384 dimensions (all-MiniLM-L6-v2 / Gemini)" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+      <div>
+        <label class="block text-slate-400 font-medium">Top-K Chunk Excerpts</label>
+        <input value="4 most relevant segments per query" readonly class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#090d18] px-4 py-2.5 text-xs text-slate-200 outline-none">
+      </div>
+    </div>
+  </section>
+</div>
+{% endblock %}

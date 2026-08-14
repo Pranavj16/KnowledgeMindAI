@@ -1,1 +1,160 @@
-{% extends 'app/base.html' %}{% block title %}Upload · KnowledgeMind AI{% endblock %}{% block breadcrumb %}Knowledge Bases / Upload{% endblock %}{% block content %}<div><p class="font-mono text-xs uppercase tracking-[.2em] text-indigo-300">knowledge bases / ingestion</p><h1 class="mt-3 text-3xl font-semibold text-white">Upload knowledge</h1><p class="mt-2 text-sm text-slate-500">Add a source to the retrieval pipeline and inspect its generated chunks.</p></div><div class="mt-8 grid gap-6 xl:grid-cols-[.65fr_1.45fr_.8fr]"><aside class="glass rounded-2xl p-5"><h2 class="text-sm font-semibold text-white">Knowledge base history</h2><div class="mt-5 space-y-2">{% for document in documents %}<a href="{% url 'kb_detail' document.id %}" class="flex items-center gap-3 rounded-xl border border-white/5 p-3 hover:bg-white/[.03]"><span class="grid h-9 w-9 place-items-center rounded-lg bg-rose-400/10 text-[10px] text-rose-300">PDF</span><span class="min-w-0 flex-1 truncate text-xs text-slate-300">{{ document.title }}</span><span class="text-emerald-300">✓</span></a>{% empty %}<p class="rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-slate-600">No documents yet.</p>{% endfor %}</div></aside><section class="glass rounded-2xl p-6"><h2 class="text-sm font-semibold text-white">Upload area</h2><p class="mt-1 text-xs text-slate-600">PDF is the active parser in this MVP.</p><form method="POST" enctype="multipart/form-data" class="mt-6">{% csrf_token %}<label for="id_file" class="flex min-h-56 cursor-pointer flex-col items-center justify-center rounded-2xl border border-dashed border-slate-700 bg-[#0b0f19] px-6 text-center hover:border-indigo-400"><span class="grid h-12 w-12 place-items-center rounded-xl bg-indigo-400/10 text-2xl text-indigo-300">↑</span><span class="mt-4 text-sm text-white">Drag & drop or browse</span><span class="mt-2 text-xs text-slate-600">PDF supported by the current loader</span>{{ form.file }}</label><label class="mt-5 block text-xs text-slate-500">Document title{{ form.title }}</label><button class="mt-5 w-full rounded-xl bg-indigo-500 px-4 py-3 text-sm font-semibold text-white">Upload & process →</button></form></section><aside class="glass rounded-2xl p-5"><h2 class="text-sm font-semibold text-white">Processing pipeline</h2><div class="mt-6 space-y-5">{% for label in 'Upload Complete,Text Extraction,Chunking,Embeddings,ChromaDB,Ready'|make_list %}{% endfor %}<div class="flex justify-between border-b border-white/5 pb-4 text-xs"><span class="text-slate-300">Upload Complete</span><span class="text-emerald-300">✓</span></div><div class="flex justify-between border-b border-white/5 pb-4 text-xs"><span class="text-slate-300">Text Extraction</span><span class="text-emerald-300">✓</span></div><div class="flex justify-between border-b border-white/5 pb-4 text-xs"><span class="text-slate-300">Chunking</span><span class="text-emerald-300">✓</span></div><div class="flex justify-between border-b border-white/5 pb-4 text-xs"><span class="text-slate-300">Embeddings</span><span class="text-emerald-300">✓</span></div><div class="flex justify-between border-b border-white/5 pb-4 text-xs"><span class="text-slate-300">ChromaDB</span><span class="text-emerald-300">✓</span></div><div class="rounded-xl bg-emerald-400/10 p-3 text-center text-xs text-emerald-300">✓ Ready for semantic search</div></div></aside></div><section class="glass mt-6 rounded-2xl p-6"><div class="flex justify-between"><h2 class="text-sm font-semibold text-white">Chunk explorer</h2><span class="text-xs text-slate-600">{{ chunks|length }} chunks</span></div><div class="mt-5 grid gap-3 md:grid-cols-2">{% for chunk in chunks %}<details class="rounded-xl border border-white/10 bg-[#0b0f19] p-4"><summary class="cursor-pointer text-xs text-slate-300">Chunk #{{ forloop.counter }} · {{ chunk|length }} characters</summary><p class="mt-4 text-xs leading-6 text-slate-500">{{ chunk }}</p></details>{% empty %}<p class="col-span-full rounded-xl border border-dashed border-white/10 p-8 text-center text-xs text-slate-600">Chunks will appear after processing.</p>{% endfor %}</div></section>{% endblock %}
+{% extends 'app/base.html' %}
+{% block title %}Upload Knowledge · KnowledgeMind AI{% endblock %}
+{% block breadcrumb %}Knowledge Bases / Ingestion{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+  <div>
+    <p class="font-mono text-xs uppercase tracking-[.2em] text-indigo-300">pipeline / ingestion</p>
+    <h1 class="mt-2 text-2xl font-bold text-white sm:text-3xl">Ingest Knowledge Base</h1>
+    <p class="mt-1 text-xs text-slate-400">Upload PDF documents to parse, recursively chunk, and vectorize into ChromaDB.</p>
+  </div>
+  <a href="{% url 'knowledge_bases' %}" class="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-white">
+    <span>▦</span> View all knowledge bases
+  </a>
+</div>
+
+<!-- Upload Main Grid -->
+<div class="mt-8 grid gap-6 lg:grid-cols-[1.3fr_.7fr]">
+  
+  <!-- Upload Form -->
+  <section class="glass rounded-2xl p-6 sm:p-7">
+    <h2 class="text-sm font-semibold text-white">Document Uploader</h2>
+    <p class="mt-1 text-xs text-slate-400">Supported formats: PDF with extractable text layers.</p>
+
+    <form method="POST" enctype="multipart/form-data" class="mt-6 space-y-5">
+      {% csrf_token %}
+      
+      <!-- Custom Drag & Drop File Box -->
+      <div>
+        <label for="id_file" class="group flex min-h-[200px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-white/10 bg-[#090d18] p-6 text-center transition hover:border-indigo-500/50 hover:bg-indigo-500/[.02]">
+          <div class="grid h-12 w-12 place-items-center rounded-2xl bg-indigo-500/10 text-xl text-indigo-300 ring-1 ring-indigo-500/20 group-hover:scale-105 transition">
+            ↑
+          </div>
+          <span class="mt-4 text-sm font-medium text-white group-hover:text-indigo-300 transition">
+            Choose a PDF file or drag & drop here
+          </span>
+          <span id="file-chosen-text" class="mt-1 text-xs text-slate-500">Maximum recommended file size: 25MB</span>
+          <input type="file" id="id_file" name="file" accept=".pdf" required class="hidden" onchange="handleFileChange(this)">
+        </label>
+      </div>
+
+      <!-- Title Input -->
+      <div>
+        <label for="id_title" class="block text-xs font-medium text-slate-300">
+          Knowledge Base Title
+        </label>
+        <input type="text" id="id_title" name="title" required placeholder="e.g. Q3 Financial Report or Machine Learning Handbook" class="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0b0f19] px-4 py-3 text-sm text-white placeholder-slate-600 outline-none transition focus:border-indigo-400 focus:ring-1 focus:ring-indigo-400">
+      </div>
+
+      <button id="upload-btn" type="submit" class="w-full rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-600/30 transition hover:bg-indigo-500">
+        Ingest & Vectorize Document →
+      </button>
+    </form>
+  </section>
+
+  <!-- Pipeline Explanation -->
+  <aside class="space-y-6">
+    <section class="glass rounded-2xl p-6">
+      <h2 class="text-sm font-semibold text-white">Ingestion Pipeline</h2>
+      <div class="mt-4 space-y-3.5 text-xs text-slate-300">
+        <div class="flex items-center gap-3">
+          <span class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-500/20 text-[10px] font-mono text-indigo-300">1</span>
+          <div>
+            <p class="font-medium text-white">PDF Text Extraction</p>
+            <p class="text-[11px] text-slate-500">Reads text and layout via PyPDF</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-500/20 text-[10px] font-mono text-indigo-300">2</span>
+          <div>
+            <p class="font-medium text-white">Semantic Chunking</p>
+            <p class="text-[11px] text-slate-500">Splits into coherent context windows</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-500/20 text-[10px] font-mono text-indigo-300">3</span>
+          <div>
+            <p class="font-medium text-white">Embedding Generation</p>
+            <p class="text-[11px] text-slate-500">Vectors calculated via sentence transformers</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <span class="grid h-6 w-6 place-items-center rounded-lg bg-indigo-500/20 text-[10px] font-mono text-indigo-300">4</span>
+          <div>
+            <p class="font-medium text-white">ChromaDB Persistent Index</p>
+            <p class="text-[11px] text-slate-500">Stored with document metadata</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recent Uploads Quick Link -->
+    <section class="glass rounded-2xl p-6">
+      <div class="flex items-center justify-between">
+        <h2 class="text-sm font-semibold text-white">Recent Knowledge Bases</h2>
+        <a href="{% url 'knowledge_bases' %}" class="text-[11px] text-indigo-300 hover:underline">View all</a>
+      </div>
+      <div class="mt-4 space-y-2">
+        {% for doc in documents|slice:':4' %}
+        <div class="flex items-center justify-between rounded-xl border border-white/5 bg-white/[.02] p-2.5 text-xs">
+          <span class="truncate font-medium text-slate-200" title="{{ doc.title }}">📄 {{ doc.title|truncatechars:22 }}</span>
+          <a href="{% url 'kb_chat' doc.id %}" class="text-indigo-400 hover:text-indigo-300">Chat →</a>
+        </div>
+        {% empty %}
+        <p class="text-xs text-slate-500">No documents indexed yet.</p>
+        {% endfor %}
+      </div>
+    </section>
+  </aside>
+</div>
+
+<!-- Chunk Explorer (if recently uploaded in session) -->
+{% if chunks %}
+<section class="glass mt-8 rounded-2xl p-6">
+  <div class="flex items-center justify-between">
+    <div>
+      <h2 class="text-sm font-semibold text-white">Generated Chunks in Current Session</h2>
+      <p class="text-xs text-slate-500">Inspect the extracted context segments vectorized for this document.</p>
+    </div>
+    <span class="rounded-full bg-indigo-500/10 px-3 py-1 font-mono text-xs text-indigo-300">
+      {{ chunks|length }} chunks
+    </span>
+  </div>
+
+  <div class="mt-6 grid gap-4 md:grid-cols-2">
+    {% for chunk in chunks %}
+    <div class="rounded-xl border border-white/5 bg-[#0b0f1a] p-4 text-xs">
+      <div class="flex items-center justify-between text-slate-400 font-mono text-[10px]">
+        <span>Chunk #{{ forloop.counter }}</span>
+        <span>{{ chunk|length }} chars</span>
+      </div>
+      <p class="mt-2.5 line-clamp-4 text-slate-300 leading-relaxed font-sans">
+        {{ chunk }}
+      </p>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<script>
+function handleFileChange(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    document.querySelector('#file-chosen-text').textContent = 'Selected: ' + file.name;
+    const titleInput = document.querySelector('#id_title');
+    if (!titleInput.value) {
+      titleInput.value = file.name.replace(/\.[^/.]+$/, '');
+    }
+  }
+}
+
+document.querySelector('form')?.addEventListener('submit', () => {
+  const btn = document.querySelector('#upload-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="inline-flex items-center gap-2"><span>Processing & Embedding...</span> <span class="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent"></span></span>';
+});
+</script>
+{% endblock %}
