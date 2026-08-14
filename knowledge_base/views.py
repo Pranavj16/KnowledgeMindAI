@@ -13,102 +13,46 @@ from .chroma_service import (
 
 
 def upload_document(request):
-
     if request.method == "POST":
-
-        form = DocumentForm(
-            request.POST,
-            request.FILES
-        )
-
+        form = DocumentForm(request.POST, request.FILES)
         if form.is_valid():
+            document = form.save(commit=False)
+            
+            # Ensure valid user object is attached
+            if request.user.is_authenticated:
+                document.user = request.user
+            else:
+                user = User.objects.first()
+                if not user:
+                    user = User.objects.create_user(username="demo_user", email="demo@example.com")
+                document.user = user
 
-            # Create document object
-            document = form.save(
-                commit=False
-            )
-
-            # Temporary user assignment
-            document.user = User.objects.first()
-
-            # Save uploaded file
             document.save()
 
-            # Extract text from PDF
-            text = load_pdf(
-                document.file.path
-            )
+            try:
+                # Read uploaded file stream or path
+                file_obj = document.file
+                text = load_pdf(file_obj)
+                chunks = chunk_text(text)
+                
+                if chunks:
+                    store_chunks(chunks)
+                    request.session["chunks"] = chunks
+                    document.processed = True
+                    document.save(update_fields=["processed"])
+                    messages.success(request, f"Successfully created {len(chunks)} chunks from {document.title}.")
+                else:
+                    messages.warning(request, f"No text content could be extracted from {document.title}.")
+            except Exception as exc:
+                print(f"Upload processing error: {exc}")
+                messages.error(request, f"Error processing file: {exc}")
 
-            # Generate chunks
-            chunks = chunk_text(
-                text
-            )
-            print("STORING CHUNKS...")
-
-            # Store chunks in ChromaDB
-            store_chunks(
-                chunks
-            )
-            print("DONE STORING!")
-            print(
-                get_total_chunks()
-            )
-            # Store chunks in session for frontend display
-            request.session["chunks"] = chunks
-
-            # Print PDF text
-            print("\n")
-            print("=" * 50)
-            print("PDF TEXT")
-            print("=" * 50)
-            print(text)
-
-            # Print chunks
-            print("\n")
-            print("=" * 50)
-            print(f"TOTAL CHUNKS: {len(chunks)}")
-            print("=" * 50)
-
-            for i, chunk in enumerate(chunks):
-
-                print(f"\nChunk {i + 1}")
-                print(chunk)
-                print("-" * 50)
-
-            # Print total chunks stored in ChromaDB
-            print("\n")
-            print("=" * 50)
-            print(
-                f"TOTAL STORED CHUNKS: "
-                f"{get_total_chunks()}"
-            )
-            print("=" * 50)
-
-            # Mark document as processed
-            document.processed = True
-
-            # Save updated document
-            document.save()
-
-            # Redirect back to upload page
-            return redirect(
-                "upload"
-            )
-
+            return redirect("upload")
     else:
-
         form = DocumentForm()
 
-    # Fetch all uploaded documents
-    documents = Document.objects.all().order_by(
-        "-uploaded_at"
-    )
-
-    # Get chunks from session
-    chunks = request.session.get(
-        "chunks",
-        []
-    )
+    documents = Document.objects.all().order_by("-uploaded_at")
+    chunks = request.session.get("chunks", [])
 
     return render(
         request,
@@ -119,6 +63,7 @@ def upload_document(request):
             "chunks": chunks,
         },
     )
+
 
 
 def knowledge_base_list(request):

@@ -1,13 +1,15 @@
-def load_pdf(file_path):
+def load_pdf(file_source):
     from pypdf import PdfReader
 
-    reader = PdfReader(file_path)
-
-    text = ""
-
-    for page in reader.pages:
-        extracted = page.extract_text()
-        if extracted:
-            text += extracted
-
-    return text
+    try:
+        reader = PdfReader(file_source)
+        text = ""
+        for page in reader.pages:
+            extracted = page.extract_text()
+            if extracted:
+                text += extracted + "\n"
+        return text
+    except Exception as e:
+        print(f"PDF read error: {e}")
+        return ""
+
