@@ -1,1 +1,2 @@
-web: gunicorn rag_agent.wsgi:application
+web: gunicorn --workers 1 --threads 2 --timeout 120 rag_agent.wsgi:application
+
