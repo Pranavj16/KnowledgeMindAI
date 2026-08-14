@@ -12,16 +12,16 @@ def chat_view(request, document_id=None):
     question = ""
     sources = []
     
-    all_documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
-    
-    # Resolve requested knowledge base
+    # If no specific document is provided in URL or query, redirect to first KB or KB list
     selected_doc_id = document_id or request.GET.get("kb")
-    document = None
-    if selected_doc_id and str(selected_doc_id).strip():
-        try:
-            document = get_object_or_404(Document, pk=selected_doc_id, user=request.user)
-        except Exception:
-            document = None
+    if not selected_doc_id:
+        first_doc = Document.objects.filter(user=request.user).order_by("-uploaded_at").first()
+        if first_doc:
+            return redirect("kb_chat", document_id=first_doc.id)
+        return redirect("knowledge_bases")
+
+    document = get_object_or_404(Document, pk=selected_doc_id, user=request.user)
+    all_documents = Document.objects.filter(user=request.user).order_by("-uploaded_at")
 
     if request.method == "POST":
         question = request.POST.get("question", "").strip()

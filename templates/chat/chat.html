@@ -3,20 +3,25 @@
 {% block breadcrumb %}{% if document %}{{ document.title }} / Chat{% else %}Workspace / Chat{% endif %}{% endblock %}
 
 {% block content %}
+<!-- Navigation Back -->
+<div class="mb-4 flex items-center justify-between">
+  <a href="{% url 'knowledge_bases' %}" class="inline-flex items-center gap-1.5 text-xs text-slate-400 transition hover:text-white">
+    <span>←</span> Back to Knowledge Bases
+  </a>
+  <span class="rounded-full border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-0.5 font-mono text-[11px] text-indigo-300">
+    <span class="inline-block h-1.5 w-1.5 rounded-full bg-indigo-400 animate-pulse mr-1"></span>
+    Active Knowledge Base
+  </span>
+</div>
+
 <!-- Top Header with Knowledge Base Selector -->
 <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
   <div>
-    <div class="flex items-center gap-2">
-      <span class="inline-flex items-center gap-1.5 rounded-full border {% if document %}border-indigo-500/30 bg-indigo-500/10 text-indigo-300{% else %}border-amber-500/30 bg-amber-500/10 text-amber-300{% endif %} px-2.5 py-0.5 font-mono text-[11px]">
-        <span class="h-1.5 w-1.5 rounded-full {% if document %}bg-indigo-400 animate-pulse{% else %}bg-amber-400{% endif %}"></span>
-        {% if document %}Active Knowledge Base{% else %}No Source Selected{% endif %}
-      </span>
-    </div>
-    <h1 class="mt-2 text-2xl font-bold text-white sm:text-3xl">
-      {% if document %}Chat with <span class="text-indigo-300">{{ document.title }}</span>{% else %}Knowledge Base Chat{% endif %}
+    <h1 class="text-2xl font-bold text-white sm:text-3xl">
+      Chat with <span class="text-indigo-300">{{ document.title }}</span>
     </h1>
     <p class="mt-1 text-xs text-slate-400">
-      {% if document %}Grounded retrieval exclusively from {{ document.title }}.{% else %}Select a knowledge base below to begin chatting.{% endif %}
+      Grounded retrieval exclusively from {{ document.title }}.
     </p>
   </div>
 

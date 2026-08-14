@@ -42,11 +42,8 @@
         <a href="{% url 'dashboard' %}" class="{% if section == 'dashboard' %}nav-active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
           <span>⌂</span> <span>Dashboard</span>
         </a>
-        <a href="{% url 'knowledge_bases' %}" class="{% if section == 'knowledge_bases' %}nav-active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
+        <a href="{% url 'knowledge_bases' %}" class="{% if section == 'knowledge_bases' or section == 'chat' %}nav-active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
           <span>▦</span> <span>Knowledge Bases</span>
-        </a>
-        <a href="{% url 'chat' %}" class="{% if section == 'chat' %}nav-active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
-          <span>◌</span> <span>Chat</span>
         </a>
         <a href="{% url 'analytics_root' %}" class="{% if section == 'analytics' %}nav-active{% endif %} flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-400 hover:bg-white/5 hover:text-white">
           <span>⌁</span> <span>Analytics</span>
