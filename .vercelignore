@@ -1,0 +1,17 @@
+# Ignore local databases, virtual environments, and media uploads from Vercel bundling
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+db.sqlite3-journal
+chroma_db/
+media/
+staticfiles/
+.env
+.env.txt
+.git/
