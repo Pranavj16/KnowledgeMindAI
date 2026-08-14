@@ -165,4 +165,9 @@ except ImportError:
 
 
 MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
+if os.getenv("VERCEL"):
+    MEDIA_ROOT = Path("/tmp/media")
+    FILE_UPLOAD_TEMP_DIR = "/tmp"
+else:
+    MEDIA_ROOT = BASE_DIR / "media"
+
