@@ -38,13 +38,18 @@ RENDER_EXTERNAL_HOSTNAME = os.getenv('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME and RENDER_EXTERNAL_HOSTNAME not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
+if os.getenv('VERCEL'):
+    ALLOWED_HOSTS.append('.vercel.app')
+
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
+    "https://*.vercel.app",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
 ]
 if RENDER_EXTERNAL_HOSTNAME:
     CSRF_TRUSTED_ORIGINS.append(f"https://{RENDER_EXTERNAL_HOSTNAME}")
+
 
 
 # Application definition
@@ -100,7 +105,10 @@ WSGI_APPLICATION = 'rag_agent.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-SQLITE_DB_PATH = os.getenv('SQLITE_DB_PATH', str(BASE_DIR / 'db.sqlite3'))
+if os.getenv('VERCEL'):
+    SQLITE_DB_PATH = '/tmp/db.sqlite3'
+else:
+    SQLITE_DB_PATH = os.getenv('SQLITE_DB_PATH', str(BASE_DIR / 'db.sqlite3'))
 
 DATABASES = {
     'default': {

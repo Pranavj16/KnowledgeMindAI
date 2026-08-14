@@ -187,6 +187,22 @@ This project is configured for seamless zero-downtime deployment on **Render** u
 
 ---
 
+## ⚡ Deployment on Vercel (Zero RAM Limit Serverless)
+
+The project is fully pre-configured for **Vercel Serverless Functions** with WSGI routing (`api/index.py` & `vercel.json`).
+
+### Quick Deploy to Vercel:
+
+1. Push your code to [GitHub](https://github.com/Pranavj16/KnowledgeMindAI).
+2. Go to your [Vercel Dashboard](https://vercel.com/dashboard) and click **Add New...** ──► **Project**.
+3. Import the `KnowledgeMindAI` repository.
+4. Add Environment Variable under Project Settings:
+   - `GEMINI_API_KEY`: *(Your Google Gemini API key)*
+5. Click **Deploy**. Vercel will build and host your Django application on its global edge serverless network instantly!
+
+---
+
+
 ## 📤 Pushing to GitHub Checklist
 
 Ensure your repository is ready for public or private GitHub pushing:
