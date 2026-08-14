@@ -1,14 +1,14 @@
-from sentence_transformers import (
-    SentenceTransformer
-)
+_model = None
 
-model = SentenceTransformer(
-    "all-MiniLM-L6-v2"
-)
+
+def get_model():
+    global _model
+    if _model is None:
+        from sentence_transformers import SentenceTransformer
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
 
 def generate_embedding(text):
-
-    return model.encode(
-        text
-    ).tolist()
+    model = get_model()
+    return model.encode(text).tolist()
