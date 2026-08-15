@@ -8,8 +8,6 @@
 ![ChromaDB](https://img.shields.io/badge/ChromaDB-Vector_Store-FF6600?style=for-the-badge&logo=databricks&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 
-🌐 **Live Demo:** [https://knowledge-mind-ai-jmeu.vercel.app/](https://knowledge-mind-ai-jmeu.vercel.app/)
-
 **KnowledgeMind AI** is an end-to-end Retrieval-Augmented Generation (RAG) platform built with **Django**, **Neon PostgreSQL**, **ChromaDB**, **Sentence Transformers**, and **Google Gemini 2.5 Flash**. It allows users to create workspaces, upload PDF documents, extract knowledge chunks, store embeddings in a vector database, and perform context-aware AI conversations with citation tracking and query history analytics.
 
 ---
